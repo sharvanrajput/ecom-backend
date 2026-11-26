@@ -8,9 +8,9 @@ const userSchema = new Schema({
     userCart: { type: Object, default: {} },
 }, { timestamps: true, minimize: false })
 
-userSchema.pre("save", function () {
+userSchema.pre("save", async function () {
     if (!this.isModified("password")) return
-    this.password = bcrypt.hash(this.password, 10)
+    this.password = await bcrypt.hash(this.password, 10)
 })
 
 export const User =   model("User", userSchema)

@@ -24,6 +24,6 @@ export const adminAuth = async (req, res, next) => {
         next()
 
     } catch (error) {
-        return res.status(500).json({ success: false, message: "something went wrong " + error })
+        return res.status(401).json({ success: false, message: "Invalid or expired token" })
     }
 }

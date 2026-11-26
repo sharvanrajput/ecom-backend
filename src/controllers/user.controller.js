@@ -10,38 +10,43 @@ const option = {
 
 export const signup = async (req, res) => {
     try {
-        const { name, email, password } = req.body
+        const { name, email, password } = req.body ?? {}
 
-        if ([name, email, password].some(field => field.trim() == "" || !field)) {
+        if ([name, email, password].some(field => typeof field !== "string" || !field.trim())) {
             return res.status(400).json({ success: false, message: "all fields are required" })
         }
 
-        const existing = await User.findOne({ email })
+        const normalizedEmail = email.trim().toLowerCase()
+        const existing = await User.findOne({ email: normalizedEmail })
 
         if (existing) {
             return res.status(400).json({ success: false, message: "user already exist" })
         }
 
-        const user = await User.create({ name, email, password })
+        const user = await User.create({ name: name.trim(), email: normalizedEmail, password })
 
         const token = genToken(user._id)
 
-        return res.cookie("token", token, option).status(201).json({ success: true, message: "User Register successfull" })
+        return res.cookie("token", token, option).status(201).json({ success: true, message: "User Register successfull", token })
 
     } catch (error) {
-        return res.status(500).json({ success: false, message: "something went wrong " + error })
+        if (error.code === 11000) {
+            return res.status(409).json({ success: false, message: "user already exist" })
+        }
+        console.error("User signup failed:", error)
+        return res.status(500).json({ success: false, message: "Unable to create account" })
     }
 }
 
 export const signin = async (req, res) => {
     try {
-        const { email, password } = req.body
+        const { email, password } = req.body ?? {}
 
-        if ([email, password].some(field => field.trim() == "" || !field)) {
+        if ([email, password].some(field => typeof field !== "string" || !field.trim())) {
             return res.status(400).json({ success: false, message: "all fields are required" })
         }
 
-        const user = await User.findOne({ email })
+        const user = await User.findOne({ email: email.trim().toLowerCase() })
 
         if (!user) {
             return res.status(400).json({ success: false, message: "Incorrect email or password" })
@@ -55,10 +60,11 @@ export const signin = async (req, res) => {
 
         const token = genToken(user._id)
 
-        return res.cookie("token", token, option).status(200).json({ success: true, message: "User Login successfull" })
+        return res.cookie("token", token, option).status(200).json({ success: true, message: "User Login successfull", token })
 
     } catch (error) {
-        return res.status(500).json({ success: false, message: "something went wrong " + error })
+        console.error("User signin failed:", error)
+        return res.status(500).json({ success: false, message: "Unable to sign in" })
     }
 }
 
